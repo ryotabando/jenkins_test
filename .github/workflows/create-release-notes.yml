@@ -1,0 +1,47 @@
+name: Create Release Notes
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  create_release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+
+      - name: Get the latest tag
+        id: get_latest_tag
+        run: |
+          latest_tag=$(git describe --tags `git rev-list --tags --max-count=1`)
+          echo "::set-output name=LATEST_TAG::$latest_tag"
+
+      - name: Get the current tag
+        id: get_current_tag
+        run: |
+          current_tag=${GITHUB_REF#refs/tags/}
+          echo "::set-output name=CURRENT_TAG::$current_tag"
+
+      - name: Generate release notes
+        id: generate_release_notes
+        run: |
+          latest_tag=${{ steps.get_latest_tag.outputs.LATEST_TAG }}
+          current_tag=${{ steps.get_current_tag.outputs.CURRENT_TAG }}
+          changes=$(git log $latest_tag..$current_tag --oneline)
+          full_changelog=$(git log --oneline)
+          echo "## What's Changed" > release_notes.md
+          echo "$changes" >> release_notes.md
+          echo "## Full Changelog" >> release_notes.md
+          echo "$full_changelog" >> release_notes.md
+
+      - name: Create GitHub Release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ steps.get_current_tag.outputs.CURRENT_TAG }}
+          release_name: Release-${{ steps.get_current_tag.outputs.CURRENT_TAG }}
+          body_path: ./release_notes.md
