@@ -18,14 +18,14 @@ jobs:
       - name: Get the previous tag
         id: get_previous_tag
         run: |
-          current_tag=${GITHUB_REF#refs/tags/}
+          current_tag=${{ github.ref_name }}
           previous_tag=$(git tag --sort=-creatordate | grep -E '^v' | grep -v $current_tag | head -n 1)
           echo "::set-output name=PREVIOUS_TAG::$previous_tag"
 
       - name: Get the current tag
         id: get_current_tag
         run: |
-          current_tag=${GITHUB_REF#refs/tags/}
+          current_tag=${{ github.ref_name }}
           echo "::set-output name=CURRENT_TAG::$current_tag"
 
       - name: Generate release notes
