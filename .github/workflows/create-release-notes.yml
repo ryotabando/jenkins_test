@@ -18,30 +18,28 @@ jobs:
       - name: Get the current tag
         id: get_current_tag
         run: |
-          current_tag=${{ github.ref_name }}
-          echo "::set-output name=CURRENT_TAG::$current_tag"
+          echo "CURRENT_TAG=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
 
       - name: List all tags
         id: list_tags
         run: |
           tags=$(git tag --sort=-creatordate)
-          echo "Tags: $tags"
-          echo "::set-output name=TAGS::$tags"
+          echo "TAGS=$tags" >> $GITHUB_ENV
 
       - name: Get the previous tag
         id: get_previous_tag
         run: |
-          current_tag=${{ steps.get_current_tag.outputs.CURRENT_TAG }}
-          previous_tag=$(echo "${{ steps.list_tags.outputs.TAGS }}" | grep -E '^v' | grep -v $current_tag | head -n 1)
+          current_tag=${{ env.CURRENT_TAG }}
+          previous_tag=$(echo "${{ env.TAGS }}" | grep -E '^v' | grep -v $current_tag | head -n 1)
           echo "Current tag: $current_tag"
           echo "Previous tag: $previous_tag"
-          echo "::set-output name=PREVIOUS_TAG::$previous_tag"
+          echo "PREVIOUS_TAG=$previous_tag" >> $GITHUB_ENV
 
       - name: Generate release notes
         id: generate_release_notes
         run: |
-          previous_tag=${{ steps.get_previous_tag.outputs.PREVIOUS_TAG }}
-          current_tag=${{ steps.get_current_tag.outputs.CURRENT_TAG }}
+          previous_tag=${{ env.PREVIOUS_TAG }}
+          current_tag=${{ env.CURRENT_TAG }}
           changes=$(git log $previous_tag..$current_tag --oneline)
           full_changelog=$(git log --oneline)
           echo "## Release Notes for $current_tag" > release_notes.md
@@ -51,13 +49,13 @@ jobs:
           echo "## Full Changelog" >> release_notes.md
           echo "$full_changelog" >> release_notes.md
           echo "## Tag List" >> release_notes.md
-          echo "${{ steps.list_tags.outputs.TAGS }}" >> release_notes.md
+          echo "${{ env.TAGS }}" >> release_notes.md
 
       - name: Create GitHub Release
         uses: actions/create-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: ${{ steps.get_current_tag.outputs.CURRENT_TAG }}
-          release_name: Release-${{ steps.get_current_tag.outputs.CURRENT_TAG }}
+          tag_name: ${{ env.CURRENT_TAG }}
+          release_name: Release-${{ env.CURRENT_TAG }}
           body_path: ./release_notes.md
