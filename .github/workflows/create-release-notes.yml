@@ -4,16 +4,17 @@ on:
   push:
     tags:
       - 'v*'
-    branches:
-      - master
 
 jobs:
   release-notes:
+    if: github.ref == 'refs/heads/master'
     runs-on: ubuntu-latest
 
     steps:
     - name: Checkout repository
       uses: actions/checkout@v2
+      with:
+        fetch-depth: 0
 
     - name: Get previous tag
       id: prev-tag
