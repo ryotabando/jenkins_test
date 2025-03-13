@@ -1,59 +1,66 @@
-name: Create Release Notes
+name: リリースタグとリリースノートの作成
 
 on:
   push:
-    branches:
-      - master
     tags:
       - 'v*'
+    branches:
+      - master
 
 jobs:
-  create_release:
+  create-release-tag:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v2
-        with:
-          fetch-depth: 0  # Fetch all history for all tags and branches
+      - uses: actions/checkout@v3
 
-      - name: Get the current tag
-        id: get_current_tag
+      # 前回のリリースタグを取得する
+      - name: Pre Tag Get
+        id: pre_tag
         run: |
-          echo "CURRENT_TAG=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
+          echo "pre_tag=$(curl -H 'Accept: application/vnd.github.v3+json' -H 'Authorization: token ${{ secrets.GITHUB_TOKEN }}' https://api.github.com/repos/${{ github.repository }}/releases/latest | jq -r .tag_name)" >> $GITHUB_OUTPUT
 
-      - name: Get current and previous tags
-        id: get_tags
+      # PRのDescriptionを取得しマークダウン形式に変換する
+      - name: PR description
+        id: pr_description
         run: |
-          tags=$(git tag --sort=-creatordate | tr '\n' ' ')
-          echo "TAGS=$tags" >> $GITHUB_ENV
-          current_tag=${{ env.CURRENT_TAG }}
-          previous_tag=$(echo "$tags" | grep -E '^v' | grep -v $current_tag | head -n 1)
-          echo "Current tag: $current_tag"
-          echo "Previous tag: $previous_tag"
-          echo "PREVIOUS_TAG=$previous_tag" >> $GITHUB_ENV
+          echo "pr_description=$(curl -H 'Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}' \
+            'https://api.github.com/repos/${{ github.repository }}/pulls/${{ github.event.pull_request.number}}' \
+            | jq .body | awk '{if ($0 == "null") print ""; else print}')" >> $GITHUB_OUTPUT
 
-      - name: Generate release notes
-        id: generate_release_notes
+      # 前回リリースからの差分をもとに、変更点を取得する
+      - name: Get Change history 
+        id: changes
         run: |
-          previous_tag=${{ env.PREVIOUS_TAG }}
-          current_tag=${{ env.CURRENT_TAG }}
-          changes=$(git log $previous_tag..$current_tag --oneline)
-          full_changelog=$(git log --oneline)
-          echo "## Release Notes for $current_tag" > release_notes.md
-          echo "Comparing $previous_tag...$current_tag" >> release_notes.md
-          echo "## What's Changed" >> release_notes.md
-          echo "$changes" >> release_notes.md
-          echo "## Full Changelog" >> release_notes.md
-          echo "$full_changelog" >> release_notes.md
-          echo "## Tag List" >> release_notes.md
-          echo "${{ env.TAGS }}" >> release_notes.md
+          echo "changes=$(
+          curl -X POST \
+            -H 'Accept: application/vnd.github.v3+json' \
+            -H 'Authorization: token ${{ secrets.GITHUB_TOKEN }}' \
+            https://api.github.com/repos/${{ github.repository }}/releases/generate-notes \
+            -d '{
+              "tag_name": "${{ github.ref_name }}",
+              "previous_tag_name": "${{ steps.pre_tag.outputs.pre_tag }}",
+              "target_commitish": "master"
+            }' | jq .body
+          )" >> $GITHUB_OUTPUT
 
-      - name: Create GitHub Release
+      # リリースノートの本文を作成する
+      - name: Create Body
+        id: release_note_body
+        run: |
+          echo "release_note_body=$(echo \
+            ${{ steps.pr_description.outputs.pr_description }} \
+            ${{ steps.changes.outputs.changes }} \
+            | sed 's/\\"//g' | sed 's/["“]//g')" >> $GITHUB_OUTPUT
+
+      # リリースノートを作成する
+      - name: Create release note
         uses: actions/create-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: ${{ env.CURRENT_TAG }}
-          release_name: Release-${{ env.CURRENT_TAG }}
-          body_path: ./release_notes.md
+          tag_name: ${{ github.ref_name }}
+          release_name: Release ${{ github.ref_name }}
+          body: ${{ steps.release_note_body.outputs.release_note_body }}
+          draft: false
+          prerelease: false
