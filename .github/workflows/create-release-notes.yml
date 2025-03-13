@@ -15,12 +15,12 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v2
 
-      - name: Get the latest tag
-        id: get_latest_tag
+      - name: Get the previous tag
+        id: get_previous_tag
         run: |
           current_tag=${GITHUB_REF#refs/tags/}
-          latest_tag=$(git tag --sort=-creatordate | grep -E '^v' | grep -v $current_tag | head -n 1)
-          echo "::set-output name=LATEST_TAG::$latest_tag"
+          previous_tag=$(git tag --sort=-creatordate | grep -E '^v' | grep -v $current_tag | head -n 1)
+          echo "::set-output name=PREVIOUS_TAG::$previous_tag"
 
       - name: Get the current tag
         id: get_current_tag
@@ -31,12 +31,12 @@ jobs:
       - name: Generate release notes
         id: generate_release_notes
         run: |
-          latest_tag=${{ steps.get_latest_tag.outputs.LATEST_TAG }}
+          previous_tag=${{ steps.get_previous_tag.outputs.PREVIOUS_TAG }}
           current_tag=${{ steps.get_current_tag.outputs.CURRENT_TAG }}
-          changes=$(git log $latest_tag..$current_tag --oneline)
+          changes=$(git log $previous_tag..$current_tag --oneline)
           full_changelog=$(git log --oneline)
           echo "## Release Notes for $current_tag" > release_notes.md
-          echo "Comparing $latest_tag...$current_tag" >> release_notes.md
+          echo "Comparing $previous_tag...$current_tag" >> release_notes.md
           echo "## What's Changed" >> release_notes.md
           echo "$changes" >> release_notes.md
           echo "## Full Changelog" >> release_notes.md
