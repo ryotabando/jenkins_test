@@ -32,8 +32,7 @@ jobs:
         IFS=$'\n'
         for COMMIT in $(git log $PREV_TAG..$CURR_TAG --pretty=format:"%h %s"); do
           COMMIT_HASH=$(echo $COMMIT | cut -d' ' -f1)
-          COMMIT_MESSAGE=$(echo $COMMIT | cut -d' ' -f2-)
-          echo "- $COMMIT_HASH $COMMIT_MESSAGE"
+          COMMIT_MESSAGE=$(echo $COMMIT | cut -d' ' -f2- | head -n 1)
           echo "- $COMMIT_HASH $COMMIT_MESSAGE" >> release-notes.md
         done
       shell: /usr/bin/bash -e {0}
