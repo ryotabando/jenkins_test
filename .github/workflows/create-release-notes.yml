@@ -1,4 +1,4 @@
-name: Create release tag and release note
+name: Generate Release Notes
 
 on:
   push:
@@ -8,50 +8,41 @@ on:
       - master
 
 jobs:
-  create-release-tag:
+  release-notes:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v3
+    - name: Checkout repository
+      uses: actions/checkout@v2
 
-      # 前回のリリースタグを取得する
-      - name: Get previous tag
-        id: pre_tag
-        run: |
-          echo "pre_tag=$(curl -H 'Accept: application/vnd.github.v3+json' -H 'Authorization: token ${{ secrets.GITHUB_TOKEN }}' https://api.github.com/repos/${{ github.repository }}/releases/latest | jq -r .tag_name)" >> $GITHUB_OUTPUT
+    - name: Get previous tag
+      id: prev-tag
+      run: echo "PREV_TAG=$(git describe --tags --abbrev=0 HEAD^)" >> $GITHUB_ENV
 
-      # 前回リリースからの差分をもとに、変更点を取得する
-      - name: Generate release note changes
-        id: changes
-        run: |
-          echo "changes=$(
-          curl -X POST \
-            -H 'Accept: application/vnd.github.v3+json' \
-            -H 'Authorization: token ${{ secrets.GITHUB_TOKEN }}' \
-            https://api.github.com/repos/${{ github.repository }}/releases/generate-notes \
-            -d '{
-              "tag_name": "${{ github.ref_name }}",
-              "previous_tag_name": "${{ steps.pre_tag.outputs.pre_tag }}",
-              "target_commitish": "master"
-            }' | jq .body
-          )" >> $GITHUB_OUTPUT
+    - name: Get current tag
+      id: curr-tag
+      run: echo "CURR_TAG=$(git describe --tags --abbrev=0 HEAD)" >> $GITHUB_ENV
 
-      # リリースノートの本文を作成する
-      - name: Create release note body
-        id: release_note_body
-        run: |
-          echo "release_note_body=$(echo \
-            ${{ steps.changes.outputs.changes }} \
-            | sed 's/\\"//g' | sed 's/["“]//g')" >> $GITHUB_OUTPUT
+    - name: Generate release notes
+      id: release-notes
+      run: |
+        echo "Previous Tag: $PREV_TAG"
+        echo "Current Tag: $CURR_TAG"
+        PRS=$(git log $PREV_TAG..$CURR_TAG --merges --pretty=format:"%h %s" | grep "Merge pull request")
+        echo "## What's Changed" > release-notes.md
+        for PR in $PRS; do
+          PR_NUMBER=$(echo $PR | grep -oP '(?<=#)\d+')
+          PR_TITLE=$(echo $PR | cut -d' ' -f3-)
+          echo "- #$PR_NUMBER $PR_TITLE" >> release-notes.md
+        done
 
-      # リリースノートを作成する
-      - name: Create GitHub release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        with:
-          tag_name: ${{ github.ref_name }}
-          release_name: Release ${{ github.ref_name }}
-          body: ${{ steps.release_note_body.outputs.release_note_body }}
-          draft: false
-          prerelease: false
+    - name: Create Release
+      uses: actions/create-release@v1
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      with:
+        tag_name: ${{ env.CURR_TAG }}
+        release_name: Release ${{ env.CURR_TAG }}
+        body_path: ./release-notes.md
+        draft: false
+        prerelease: false
