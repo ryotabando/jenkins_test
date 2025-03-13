@@ -1,0 +1,42 @@
+changelog:
+  exclude:
+    labels:
+      - ignore-for-release
+
+  categories:
+    - title: Feature
+      labels:
+        - Feature
+    - title: Bug
+      labels:
+        - Bug
+    - title: Remove
+      labels:
+        - Remove
+    - title: Performance
+      labels:
+        - Performance
+    - title: Refactoring
+      labels:
+        - Refactoring
+    - title: Testing
+      labels:
+        - Testing
+    - title: CI/CD
+      labels:
+        - CI/CD
+    - title: Dependencies
+      labels:
+        - Dependencies
+    - title: Security
+      labels:
+        - Security
+    - title: Development
+      labels:
+        - Development
+    - title: Documentation
+      labels:
+        - Documentation
+    - title: Other Changes
+      labels:
+        - "*"
