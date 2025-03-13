@@ -28,13 +28,18 @@ jobs:
       run: |
         echo "Previous Tag: $PREV_TAG"
         echo "Current Tag: $CURR_TAG"
-        PRS=$(git log $PREV_TAG..$CURR_TAG --merges --pretty=format:"%h %s" | grep "Merge pull request")
+        COMMITS=$(git log $PREV_TAG..$CURR_TAG --pretty=format:"%h %s")
+        echo "Commits: $COMMITS"
         echo "## What's Changed" > release-notes.md
-        for PR in $PRS; do
-          PR_NUMBER=$(echo $PR | grep -oP '(?<=#)\d+')
-          PR_TITLE=$(echo $PR | cut -d' ' -f3-)
-          echo "- #$PR_NUMBER $PR_TITLE" >> release-notes.md
+        for COMMIT in $COMMITS; do
+          COMMIT_HASH=$(echo $COMMIT | cut -d' ' -f1)
+          COMMIT_MESSAGE=$(echo $COMMIT | cut -d' ' -f2-)
+          echo "- $COMMIT_HASH $COMMIT_MESSAGE" >> release-notes.md
         done
+      shell: /usr/bin/bash -e {0}
+      env:
+        PREV_TAG: ${{ env.PREV_TAG }}
+        CURR_TAG: ${{ env.CURR_TAG }}
 
     - name: Create Release
       uses: actions/create-release@v1
