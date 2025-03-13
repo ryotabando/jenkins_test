@@ -29,10 +29,10 @@ jobs:
         echo "Previous Tag: $PREV_TAG"
         echo "Current Tag: $CURR_TAG"
         echo "## What's Changed" > release-notes.md
-        IFS=$'\n'
-        for COMMIT in $(git log $PREV_TAG..$CURR_TAG --pretty=format:"%h %s"); do
-          COMMIT_HASH=$(echo $COMMIT | cut -d' ' -f1)
-          COMMIT_MESSAGE=$(echo $COMMIT | cut -d' ' -f2- | head -n 1)
+        git log $PREV_TAG..$CURR_TAG --pretty=format:"%h %s" | while IFS= read -r line; do
+          COMMIT_HASH=$(echo $line | cut -d' ' -f1)
+          COMMIT_MESSAGE=$(echo $line | cut -d' ' -f2- | head -n 1)
+          echo "- $COMMIT_HASH $COMMIT_MESSAGE"
           echo "- $COMMIT_HASH $COMMIT_MESSAGE" >> release-notes.md
         done
       shell: /usr/bin/bash -e {0}
