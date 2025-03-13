@@ -29,7 +29,7 @@ jobs:
         echo "Previous Tag: $PREV_TAG"
         echo "Current Tag: $CURR_TAG"
         echo "## What's Changed" > release-notes.md
-        git log $PREV_TAG..$CURR_TAG --pretty=format:"%h" | while IFS= read -r COMMIT_HASH; do
+        for COMMIT_HASH in $(git log $PREV_TAG..$CURR_TAG --pretty=format:"%h"); do
           COMMIT_MESSAGE=$(git log -1 --pretty=%B $COMMIT_HASH | head -n 1)
           echo "- $COMMIT_HASH $COMMIT_MESSAGE" >> release-notes.md
         done
