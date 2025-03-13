@@ -35,8 +35,8 @@ jobs:
     - name: Create Release
       uses: softprops/action-gh-release@v1
       with:
-        tag_name: ${{ env.CURR_TAG }}
-        release_name: Release ${{ env.CURR_TAG }}
+        name: Release-${{ env.CURR_TAG }}
+        generate_release_notes: true
         body_path: release-notes.md
         previous_tag_name: ${{ env.PREV_TAG }}
       env:
