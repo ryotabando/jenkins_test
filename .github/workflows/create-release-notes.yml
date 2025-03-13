@@ -33,6 +33,8 @@ jobs:
           COMMIT_MESSAGE=$(git log -1 --pretty=%B $COMMIT_HASH | head -n 1)
           echo "- $COMMIT_HASH $COMMIT_MESSAGE" >> release-notes.md
         done
+        echo "" >> release-notes.md
+        echo "Full Changelog: $PREV_TAG...$CURR_TAG" >> release-notes.md
       shell: /usr/bin/bash -e {0}
       env:
         PREV_TAG: ${{ env.PREV_TAG }}
