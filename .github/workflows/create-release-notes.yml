@@ -26,27 +26,18 @@ jobs:
     - name: Generate release notes
       id: release-notes
       run: |
-        echo "Previous Tag: $PREV_TAG"
-        echo "Current Tag: $CURR_TAG"
         echo "## What's Changed" > release-notes.md
         for COMMIT_HASH in $(git log $PREV_TAG..$CURR_TAG --pretty=format:"%h"); do
           COMMIT_MESSAGE=$(git log -1 --pretty=%B $COMMIT_HASH | head -n 1)
           echo "- $COMMIT_HASH $COMMIT_MESSAGE" >> release-notes.md
         done
-        echo "" >> release-notes.md
-        echo "Full Changelog: $PREV_TAG...$CURR_TAG" >> release-notes.md
-      shell: /usr/bin/bash -e {0}
-      env:
-        PREV_TAG: ${{ env.PREV_TAG }}
-        CURR_TAG: ${{ env.CURR_TAG }}
 
     - name: Create Release
-      uses: actions/create-release@v1
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      uses: softprops/action-gh-release@v1
       with:
         tag_name: ${{ env.CURR_TAG }}
         release_name: Release ${{ env.CURR_TAG }}
-        body_path: ./release-notes.md
-        draft: false
-        prerelease: false
+        body_path: release-notes.md
+        previous_tag_name: ${{ env.PREV_TAG }}
+      env:
+        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
