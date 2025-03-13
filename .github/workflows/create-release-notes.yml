@@ -24,13 +24,15 @@ jobs:
       - name: List all tags
         id: list_tags
         run: |
-          git tag --sort=-creatordate
-          
+          tags=$(git tag --sort=-creatordate)
+          echo "Tags: $tags"
+          echo "::set-output name=TAGS::$tags"
+
       - name: Get the previous tag
         id: get_previous_tag
         run: |
           current_tag=${{ steps.get_current_tag.outputs.CURRENT_TAG }}
-          previous_tag=$(git tag --sort=-creatordate | grep -E '^v' | grep -v $current_tag | head -n 1)
+          previous_tag=$(echo "${{ steps.list_tags.outputs.TAGS }}" | grep -E '^v' | grep -v $current_tag | head -n 1)
           echo "Current tag: $current_tag"
           echo "Previous tag: $previous_tag"
           echo "::set-output name=PREVIOUS_TAG::$previous_tag"
@@ -48,6 +50,8 @@ jobs:
           echo "$changes" >> release_notes.md
           echo "## Full Changelog" >> release_notes.md
           echo "$full_changelog" >> release_notes.md
+          echo "## Tag List" >> release_notes.md
+          echo "${{ steps.list_tags.outputs.TAGS }}" >> release_notes.md
 
       - name: Create GitHub Release
         uses: actions/create-release@v1
