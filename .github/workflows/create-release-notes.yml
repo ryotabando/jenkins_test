@@ -34,7 +34,9 @@ jobs:
           current_tag=${{ steps.get_current_tag.outputs.CURRENT_TAG }}
           changes=$(git log $latest_tag..$current_tag --oneline)
           full_changelog=$(git log --oneline)
-          echo "## What's Changed" > release_notes.md
+          echo "## Release Notes for $current_tag" > release_notes.md
+          echo "Comparing $latest_tag...$current_tag" >> release_notes.md
+          echo "## What's Changed" >> release_notes.md
           echo "$changes" >> release_notes.md
           echo "## Full Changelog" >> release_notes.md
           echo "$full_changelog" >> release_notes.md
