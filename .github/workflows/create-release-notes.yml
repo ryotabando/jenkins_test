@@ -3,7 +3,7 @@ name: Create Release Notes
 on:
   push:
     branches:
-      - master
+      - develop
     tags:
       - 'v*'
 
@@ -15,18 +15,25 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v2
 
-      - name: Get the previous tag
-        id: get_previous_tag
-        run: |
-          current_tag=${{ github.ref_name }}
-          previous_tag=$(git tag --sort=-creatordate | grep -E '^v' | grep -v $current_tag | head -n 1)
-          echo "::set-output name=PREVIOUS_TAG::$previous_tag"
-
       - name: Get the current tag
         id: get_current_tag
         run: |
           current_tag=${{ github.ref_name }}
           echo "::set-output name=CURRENT_TAG::$current_tag"
+
+      - name: List all tags
+        id: list_tags
+        run: |
+          git tag --sort=-creatordate
+          
+      - name: Get the previous tag
+        id: get_previous_tag
+        run: |
+          current_tag=${{ steps.get_current_tag.outputs.CURRENT_TAG }}
+          previous_tag=$(git tag --sort=-creatordate | grep -E '^v' | grep -v $current_tag | head -n 1)
+          echo "Current tag: $current_tag"
+          echo "Previous tag: $previous_tag"
+          echo "::set-output name=PREVIOUS_TAG::$previous_tag"
 
       - name: Generate release notes
         id: generate_release_notes
