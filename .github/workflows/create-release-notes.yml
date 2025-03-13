@@ -22,17 +22,13 @@ jobs:
         run: |
           echo "CURRENT_TAG=${GITHUB_REF#refs/tags/}" >> $GITHUB_ENV
 
-      - name: List all tags
-        id: list_tags
+      - name: Get current and previous tags
+        id: get_tags
         run: |
-          tags=$(git tag --sort=-creatordate)
+          tags=$(git tag --sort=-creatordate | tr '\n' ' ')
           echo "TAGS=$tags" >> $GITHUB_ENV
-
-      - name: Get the previous tag
-        id: get_previous_tag
-        run: |
           current_tag=${{ env.CURRENT_TAG }}
-          previous_tag=$(echo "${{ env.TAGS }}" | grep -E '^v' | grep -v $current_tag | head -n 1)
+          previous_tag=$(echo "$tags" | grep -E '^v' | grep -v $current_tag | head -n 1)
           echo "Current tag: $current_tag"
           echo "Previous tag: $previous_tag"
           echo "PREVIOUS_TAG=$previous_tag" >> $GITHUB_ENV
